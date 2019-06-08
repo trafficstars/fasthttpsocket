@@ -1,6 +1,7 @@
 package fasthttpsocket
 
 import (
+	"fmt"
 	"io"
 	"net"
 
@@ -94,7 +95,7 @@ func (c *SocketClientConn) release() {
 	c.Unlock()
 }
 
-func (c *SocketClientConn) SendAndReceive(ctx *fasthttp.RequestCtx) error {
+func (c *SocketClientConn) sendAndReceive(ctx *fasthttp.RequestCtx) error {
 	request := c.Request
 	response := c.Response
 
@@ -130,4 +131,13 @@ func (c *SocketClientConn) SendAndReceive(ctx *fasthttp.RequestCtx) error {
 	}
 
 	return nil
+}
+
+func (c *SocketClientConn) SendAndReceive(ctx *fasthttp.RequestCtx) (ret error) {
+	defer func() { // gob.Decoder panics sometimes
+		if r := recover(); r != nil {
+			ret = fmt.Errorf("panic: %v", r)
+		}
+	}()
+	return c.sendAndReceive(ctx)
 }

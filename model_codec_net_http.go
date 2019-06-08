@@ -159,14 +159,14 @@ func (codec *ClientCodecNetHttp) Encode(modelI TransmittableRequest, ctx *fastht
 	return nil
 }
 
-func (codec *ClientCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI TransmittableResponse) error {
+func (codec *ClientCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI TransmittableResponse) (err error) {
 	src := &modelI.(*modelNetHttpResponse).Response
 	dst := &ctx.Response
 
 	// Just a simple way (slow, but...)
 
 	codec.buf.Reset()
-	err := src.Write(&codec.buf)
+	err = src.Write(&codec.buf)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (codec *ClientCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI Transmi
 		return err
 	}
 
-	return nil
+	return
 }
 
 type ServerCodecNetHttp struct {
@@ -190,14 +190,14 @@ func newServerCodecNetHttp() *ServerCodecNetHttp {
 	return codec
 }
 
-func (codec *ServerCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI TransmittableRequest) error {
+func (codec *ServerCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI TransmittableRequest) (err error) {
 	src := &modelI.(*modelNetHttpRequest).Request
 	dst := &ctx.Request
 
 	// Just a simple way (slow, but...)
 
 	codec.buf.Reset()
-	err := src.Write(&codec.buf)
+	err = src.Write(&codec.buf)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (codec *ServerCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI Transmi
 		return err
 	}
 
-	return nil
+	return
 }
 
 func (codec *ServerCodecNetHttp) Encode(modelI TransmittableResponse, ctx *fasthttp.RequestCtx) error {
