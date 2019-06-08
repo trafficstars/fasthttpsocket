@@ -73,13 +73,15 @@ func (sock *SocketClient) acquireClientConnection() (r *SocketClientConn) {
 		if int(sock.clientConnPointer) >= len(sock.clientConns) {
 			sock.clientConnPointer = 0
 		}
+		count := 0
 		oldIdx := sock.clientConnPointer
 		for !sock.clientConns[sock.clientConnPointer].TryLock() {
 			sock.clientConnPointer++
+			count++
 			if int(sock.clientConnPointer) >= len(sock.clientConns) {
 				sock.clientConnPointer = 0
 			}
-			if sock.clientConnPointer == oldIdx { // all connections are busy, cannot lock/acquire any connection
+			if sock.clientConnPointer == oldIdx || count > 100 { // all connections are busy, cannot lock/acquire any connection
 				return
 			}
 		}
@@ -95,9 +97,8 @@ func (sock *SocketClient) SendAndReceive(ctx *fasthttp.RequestCtx) error {
 		return ErrBusy
 	}
 
-	defer conn.release()
-
 	err := conn.SendAndReceive(ctx)
+	conn.release()
 	if err != nil {
 		return err
 	}

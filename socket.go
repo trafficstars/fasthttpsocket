@@ -10,12 +10,18 @@ import (
 	"github.com/trafficstars/fasthttp"
 )
 
+const (
+	dummyDecoderBufferSize = 1 << 16
+)
+
 var (
-	ErrUnknownFamily     = errors.New(`[fasthttp-socket] unknown family/transport`)
-	ErrUnknownSerializer = errors.New(`[fasthttp-socket] unknown serializer`)
-	ErrUnknownDataModel  = errors.New(`[fasthttp-socket] unknown data model`)
-	ErrNotEnoughWords    = errors.New(`[fasthttp-socket] invalid address, expected syntax "datamodel:serializer:family:address", example "go/net/http:gob:unix:/run/myserver.sock"`)
-	ErrNotImplemented    = errors.New(`[fasthttp-socket] not implemented, yet`)
+	ErrUnknownFamily       = errors.New(`[fasthttp-socket] unknown family/transport`)
+	ErrUnknownSerializer   = errors.New(`[fasthttp-socket] unknown serializer`)
+	ErrUnknownDataModel    = errors.New(`[fasthttp-socket] unknown data model`)
+	ErrNotEnoughWords      = errors.New(`[fasthttp-socket] invalid address, expected syntax "datamodel:serializer:family:address", example "go/net/http:gob:unix:/run/myserver.sock"`)
+	ErrNotImplemented      = errors.New(`[fasthttp-socket] not implemented, yet`)
+	ErrNoNativeMarshaler   = errors.New(`[fasthttp-socket] selected datamodel doesn't have any native marshaler`)
+	ErrNoNativeUnmarshaler = errors.New(`[fasthttp-socket] selected datamodel doesn't have any native unmarshaler`)
 )
 
 type Family int
@@ -44,16 +50,20 @@ type serializerType int
 const (
 	serializerTypeGob = iota
 	serializerTypeJSON
+	serializerTypeNative
 )
 
 type dataModel int
 
 const (
-	dataModelNetHttp = iota
+	dataModelRaw = iota
+	dataModelNetHttp
 )
 
 func (dataModel dataModel) GetServerCodec() ServerCodec {
 	switch dataModel {
+	case dataModelRaw:
+		return newServerCodecRaw()
 	case dataModelNetHttp:
 		return newServerCodecNetHttp()
 	}
@@ -62,6 +72,8 @@ func (dataModel dataModel) GetServerCodec() ServerCodec {
 
 func (dataModel dataModel) GetClientCodec() ClientCodec {
 	switch dataModel {
+	case dataModelRaw:
+		return newClientCodecRaw()
 	case dataModelNetHttp:
 		return newClientCodecNetHttp()
 	}
@@ -100,6 +112,8 @@ func parseConfig(cfg *Config) (
 	}
 
 	switch words[0] {
+	case "raw":
+		dataModel = dataModelRaw
 	case "go/net/http":
 		dataModel = dataModelNetHttp
 	default:
@@ -109,6 +123,8 @@ func parseConfig(cfg *Config) (
 
 	var serializerType serializerType
 	switch words[1] {
+	case "native":
+		serializerType = serializerTypeNative
 	case "gob":
 		serializerType = serializerTypeGob
 	case "json":
@@ -139,6 +155,13 @@ func parseConfig(cfg *Config) (
 	}
 
 	switch serializerType {
+	case serializerTypeNative:
+		newEncoderFunc = func(w io.Writer) Encoder {
+			return newDummyEncoder(w)
+		}
+		newDecoderFunc = func(r io.Reader) Decoder {
+			return newDummyDecoder(r)
+		}
 	case serializerTypeGob:
 		newEncoderFunc = func(w io.Writer) Encoder {
 			return gob.NewEncoder(w)
@@ -156,4 +179,53 @@ func parseConfig(cfg *Config) (
 	}
 
 	return
+}
+
+type Marshaler interface {
+	Marshal() []byte
+}
+
+type Unmarshaler interface {
+	Unmarshal([]byte)
+}
+
+type dummyEncoder struct {
+	w io.Writer
+}
+
+func newDummyEncoder(w io.Writer) *dummyEncoder {
+	return &dummyEncoder{w}
+}
+
+func (enc *dummyEncoder) Encode(e interface{}) error {
+	obj, ok := e.(Marshaler)
+	if !ok {
+		return ErrNoNativeMarshaler
+	}
+	b := obj.Marshal()
+	_, err := enc.w.Write(b)
+	return err
+}
+
+type dummyDecoder struct {
+	r   io.Reader
+	buf [dummyDecoderBufferSize]byte
+}
+
+func newDummyDecoder(r io.Reader) *dummyDecoder {
+	return &dummyDecoder{r: r}
+}
+
+func (dec *dummyDecoder) Decode(e interface{}) error {
+	obj, ok := e.(Unmarshaler)
+	if !ok {
+		return ErrNoNativeUnmarshaler
+	}
+
+	n, err := dec.r.Read(dec.buf[:])
+	if err != nil {
+		return err
+	}
+	obj.Unmarshal(dec.buf[:n])
+	return err
 }

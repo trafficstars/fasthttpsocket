@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/gob"
-	"github.com/trafficstars/fasthttp"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"sync"
+
+	"github.com/trafficstars/fasthttp"
 )
 
 func init() {
@@ -18,10 +19,6 @@ func init() {
 	gob.Register(i)
 	gob.Register(http.NoBody)
 }
-
-const (
-	codecNetHttpBufferSize = 1 << 16
-)
 
 var _ ClientCodec = newClientCodecNetHttp()
 var _ ServerCodec = newServerCodecNetHttp()
@@ -156,6 +153,8 @@ func (codec *ClientCodecNetHttp) Encode(modelI TransmittableRequest, ctx *fastht
 	parsedRequest, err := http.ReadRequest(bufio.NewReader(&codec.buf))
 	*dst = *parsedRequest
 
+	dst.Body = NewBytesReader(src.Body())
+
 	return nil
 }
 
@@ -228,8 +227,7 @@ func (codec *ServerCodecNetHttp) Encode(modelI TransmittableResponse, ctx *fasth
 	}
 	*dst = *parsedResponse
 
-	dstBody, _ := ioutil.ReadAll(dst.Body)
-	dst.Body = NewBytesReader(dstBody)
+	dst.Body = NewBytesReader(src.Body())
 
 	return nil
 }
