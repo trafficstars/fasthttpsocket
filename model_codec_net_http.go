@@ -16,6 +16,7 @@ func init() {
 	var i io.Reader
 	i = &BytesReader{}
 	gob.Register(i)
+	gob.Register(http.NoBody)
 }
 
 const (
@@ -152,8 +153,9 @@ func (codec *ClientCodecNetHttp) Encode(modelI TransmittableRequest, ctx *fastht
 	if err != nil {
 		return err
 	}
-	parsedRequest, err := http.NewRequest(string(ctx.Method()), string(src.URI().FullURI()), NewBytesReader(codec.buf.Bytes()))
+	parsedRequest, err := http.ReadRequest(bufio.NewReader(&codec.buf))
 	*dst = *parsedRequest
+
 	return nil
 }
 
@@ -169,6 +171,7 @@ func (codec *ClientCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI Transmi
 		return err
 	}
 
+	dst.Reset()
 	err = dst.Read(bufio.NewReader(&codec.buf))
 	if err != nil {
 		return err
@@ -199,6 +202,7 @@ func (codec *ServerCodecNetHttp) Decode(ctx *fasthttp.RequestCtx, modelI Transmi
 		return err
 	}
 
+	dst.Reset()
 	err = dst.Read(bufio.NewReader(&codec.buf))
 	if err != nil {
 		return err
