@@ -1,0 +1,1 @@
+It works, but should be refactored. It just was created ASAP as a proof-of-concept without any designing of the code.

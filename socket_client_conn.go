@@ -1,48 +1,41 @@
 package fasthttpsocket
 
 import (
-	"github.com/trafficstars/fasthttp"
-	"github.com/trafficstars/spinlock"
 	"io"
 	"net"
+
+	"github.com/trafficstars/fasthttp"
+	"github.com/trafficstars/spinlock"
 )
 
 type SocketClientConn struct {
 	spinlock.Locker
 
-	*Socket
+	*SocketClient
 
 	net.Conn
 	Messanger
 	Encoder
 	Decoder
-	ClientCodec
-
-	Family  family
-	Address string
+	ModelCodec ClientCodec
 
 	Request  TransmittableRequest
 	Response TransmittableResponse
 }
 
 func newSocketClientConn(
-	socket *Socket,
-	newEncoderFunc NewEncoderFunc,
-	newDecoderFunc NewDecoderFunc,
-	dataModel dataModel,
-	family family,
-	address string,
+	sock *SocketClient,
 ) (*SocketClientConn, error) {
-	c := &SocketClientConn{Socket: socket}
-	c.Family = family
-	c.Address = address
+	c := &SocketClientConn{SocketClient: sock}
 	_ = c.Reconnect()
 
-	c.Encoder = newEncoderFunc(c)
-	c.Decoder = newDecoderFunc(c)
-	c.ClientCodec = dataModel.GetClientCodec()
-	c.Request = c.ClientCodec.GetRequest()
-	c.Response = c.ClientCodec.GetResponse()
+	c.Encoder = sock.NewEncoderFunc(c)
+	c.Decoder = sock.NewDecoderFunc(c)
+
+	c.ModelCodec = sock.DataModel.GetClientCodec()
+
+	c.Request = c.ModelCodec.GetRequest()
+	c.Response = c.ModelCodec.GetResponse()
 	return c, nil
 }
 
@@ -59,9 +52,11 @@ func (c *SocketClientConn) Reconnect() error {
 }
 
 func (c *SocketClientConn) Close() {
-	c.Socket.LockDo(func() {
+	sock := c.SocketClient
+
+	sock.LockDo(func() {
 		connIdx := -1
-		for idx, conn := range c.Socket.clientConns {
+		for idx, conn := range sock.clientConns {
 			if conn == c {
 				connIdx = idx
 				break
@@ -70,11 +65,11 @@ func (c *SocketClientConn) Close() {
 		if connIdx == -1 {
 			panic(`closing an unknown connection :(`)
 		}
-		newClientConns := c.Socket.clientConns[:connIdx]
-		if connIdx < len(c.Socket.clientConns) {
-			newClientConns = append(newClientConns, c.Socket.clientConns[connIdx+1:]...)
+		newClientConns := sock.clientConns[:connIdx]
+		if connIdx < len(sock.clientConns) {
+			newClientConns = append(newClientConns, sock.clientConns[connIdx+1:]...)
 		}
-		c.Socket.clientConns = newClientConns
+		sock.clientConns = newClientConns
 	})
 
 	_ = c.Conn.Close()
@@ -103,7 +98,7 @@ func (c *SocketClientConn) SendAndReceive(ctx *fasthttp.RequestCtx) error {
 	request := c.Request
 	response := c.Response
 
-	err := c.ClientCodec.Encode(request, ctx)
+	err := c.ModelCodec.Encode(request, ctx)
 	if err != nil {
 		return err
 	}
@@ -129,7 +124,7 @@ func (c *SocketClientConn) SendAndReceive(ctx *fasthttp.RequestCtx) error {
 		return err
 	}
 
-	err = c.ClientCodec.Decode(ctx, response)
+	err = c.ModelCodec.Decode(ctx, response)
 	if err != nil {
 		return err
 	}

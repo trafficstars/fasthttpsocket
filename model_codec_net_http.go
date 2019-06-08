@@ -40,7 +40,7 @@ func (model *modelNetHttpRequest) IsRequest() bool {
 }
 
 func (model *modelNetHttpRequest) Reset() {
-	 model.Request = http.Request{}
+	model.Request = http.Request{}
 }
 
 type modelNetHttpResponse struct {
@@ -62,9 +62,9 @@ func (model *modelNetHttpResponse) Reset() {
 }
 
 type modelCodecNetHttp struct {
-	requestPool *sync.Pool
+	requestPool  *sync.Pool
 	responsePool *sync.Pool
-	buf bytes.Buffer
+	buf          bytes.Buffer
 }
 
 func newModelCodecNetHttp() *modelCodecNetHttp {
@@ -113,7 +113,7 @@ func newClientCodecNetHttp() *ClientCodecNetHttp {
 
 type BytesReader struct {
 	Bytes []byte
-	pos int
+	pos   int
 }
 
 func NewBytesReader(b []byte) *BytesReader {
@@ -122,7 +122,7 @@ func NewBytesReader(b []byte) *BytesReader {
 
 func (r *BytesReader) Read(b []byte) (int, error) {
 	var err error
-	i:=0
+	i := 0
 	for ; i < len(b) && r.pos+i < len(r.Bytes); i++ {
 		b[i] = r.Bytes[r.pos+i]
 	}
