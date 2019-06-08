@@ -3,6 +3,7 @@ package fasthttpsocket
 import (
 	"github.com/trafficstars/fasthttp"
 	"github.com/trafficstars/spinlock"
+	"io"
 	"net"
 )
 
@@ -37,8 +38,6 @@ func newSocketClientConn(
 	c.Address = address
 	_ = c.Reconnect()
 
-	c.Messanger = NewMessanger(c.Conn)
-
 	c.Encoder = newEncoderFunc(c)
 	c.Decoder = newDecoderFunc(c)
 	c.ClientCodec = dataModel.GetClientCodec()
@@ -53,7 +52,7 @@ func (c *SocketClientConn) Reconnect() error {
 		c.Conn.Close()
 	}
 	c.Conn, err = net.Dial(c.Family.String(), c.Address)
-	if err != nil {
+	if err == nil {
 		c.Messanger = NewMessanger(c.Conn)
 	}
 	return err
@@ -78,15 +77,21 @@ func (c *SocketClientConn) Close() {
 		c.Socket.clientConns = newClientConns
 	})
 
-	c.Conn.Close()
+	_ = c.Conn.Close()
 	c.Messanger = nil
 }
 
 func (c *SocketClientConn) Read(b []byte) (int, error) {
+	if c.Messanger == nil {
+		return 0, io.ErrClosedPipe
+	}
 	return c.Messanger.Read(b)
 }
 
 func (c *SocketClientConn) Write(b []byte) (int, error) {
+	if c.Messanger == nil {
+		return 0, io.ErrClosedPipe
+	}
 	return c.Messanger.Write(b)
 }
 
