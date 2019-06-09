@@ -127,7 +127,7 @@ func (codec *ClientCodecRaw) Decode(ctx *fasthttp.RequestCtx, modelI Transmittab
 	dst := &ctx.Response
 
 	dst.Reset()
-	err = dst.Read(bufio.NewReader(bytes.NewReader(src.Data)))
+	err = dst.Read(bufio.NewReaderSize(bytes.NewReader(src.Data), len(src.Data)))
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func (codec *ServerCodecRaw) Decode(ctx *fasthttp.RequestCtx, modelI Transmittab
 	dst := &ctx.Request
 
 	dst.Reset()
-	err = dst.Read(bufio.NewReader(bytes.NewReader(src.Data)))
+	err = dst.Read(bufio.NewReaderSize(bytes.NewReader(src.Data), len(src.Data)))
 	if err != nil {
 		return err
 	}

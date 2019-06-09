@@ -35,7 +35,7 @@ const (
 func (f Family) String() string {
 	switch f {
 	case FamilyUnix:
-		return `unix`
+		return `unixpacket`
 	case FamilyUDP:
 		return `udp`
 	case FamilyTCP:
