@@ -18,7 +18,7 @@ var (
 	ErrUnknownFamily       = errors.New(`[fasthttp-socket] unknown family/transport`)
 	ErrUnknownSerializer   = errors.New(`[fasthttp-socket] unknown serializer`)
 	ErrUnknownDataModel    = errors.New(`[fasthttp-socket] unknown data model`)
-	ErrNotEnoughWords      = errors.New(`[fasthttp-socket] invalid address, expected syntax "datamodel:serializer:family:address", example "go/net/http:gob:unix:/run/myserver.sock"`)
+	ErrNotEnoughWords      = errors.New(`[fasthttp-socket] invalid address, expected syntax "datamodel:serializer:family:address", example "raw:native:unix:/run/myserver.sock"`)
 	ErrNotImplemented      = errors.New(`[fasthttp-socket] not implemented, yet`)
 	ErrNoNativeMarshaler   = errors.New(`[fasthttp-socket] selected datamodel doesn't have any native marshaler`)
 	ErrNoNativeUnmarshaler = errors.New(`[fasthttp-socket] selected datamodel doesn't have any native unmarshaler`)
