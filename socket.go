@@ -135,7 +135,7 @@ func parseConfig(cfg *Config) (
 	}
 
 	switch words[2] {
-	case "unix":
+	case "unix", "unixpacket":
 		family = FamilyUnix
 	case "udp":
 		family = FamilyUDP
