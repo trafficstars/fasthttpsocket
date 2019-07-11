@@ -39,14 +39,14 @@ func NewSocketServer(handleRequester HandleRequester, cfg Config) (*SocketServer
 }
 
 func (sock *SocketServer) Start() error {
-	if sock.Family == FamilyUnix {
+	if sock.Family == FamilyUnixGram || sock.Family == FamilyUnixPacket {
 		os.Remove(sock.Address)
 	}
 	accepter, err := net.Listen(sock.Family.String(), sock.Address)
 	if err != nil {
 		return fmt.Errorf(`[fasthttp-socket] Cannot bind "%v:%v"\n`, sock.Family, sock.Address)
 	}
-	if sock.Family == FamilyUnix {
+	if sock.Family == FamilyUnixGram || sock.Family == FamilyUnixPacket {
 		if err := os.Chmod(sock.Address, sock.UnixSocketPermissions); err != nil {
 			return fmt.Errorf(`[fasthttp-socket] Cannot change permission on socket "%v" to "%v"`, sock.Address, sock.UnixSocketPermissions)
 		}

@@ -27,14 +27,18 @@ var (
 type Family int
 
 const (
-	FamilyUnix = iota
+	FamilyUndefined = iota
+	FamilyUnixGram
+	FamilyUnixPacket
 	FamilyUDP
 	FamilyTCP
 )
 
 func (f Family) String() string {
 	switch f {
-	case FamilyUnix:
+	case FamilyUnixGram:
+		return `unixgram`
+	case FamilyUnixPacket:
 		return `unixpacket`
 	case FamilyUDP:
 		return `udp`
@@ -135,8 +139,10 @@ func parseConfig(cfg *Config) (
 	}
 
 	switch words[2] {
-	case "unix", "unixpacket":
-		family = FamilyUnix
+	case "unixgram":
+		family = FamilyUnixGram
+	case "unixpacket":
+		family = FamilyUnixPacket
 	case "udp":
 		family = FamilyUDP
 	case "tcp":
