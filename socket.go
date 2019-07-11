@@ -28,6 +28,7 @@ type Family int
 
 const (
 	FamilyUndefined = iota
+	FamilyUnixStream
 	FamilyUnixGram
 	FamilyUnixPacket
 	FamilyUDP
@@ -36,6 +37,8 @@ const (
 
 func (f Family) String() string {
 	switch f {
+	case FamilyUnixStream:
+		return `unix`
 	case FamilyUnixGram:
 		return `unixgram`
 	case FamilyUnixPacket:
@@ -107,7 +110,7 @@ func parseConfig(cfg *Config) (
 	family Family,
 	address string, err error,
 ) {
-	// example: "fasthttp:gob:unix:/run/myserver.sock"
+	// example: "fasthttp:gob:unixpacket:/run/myserver.sock"
 	words := strings.SplitN(cfg.Address, ":", 4)
 
 	if len(words) < 4 {
@@ -139,6 +142,8 @@ func parseConfig(cfg *Config) (
 	}
 
 	switch words[2] {
+	case "unix":
+		family = FamilyUnixStream
 	case "unixgram":
 		family = FamilyUnixGram
 	case "unixpacket":

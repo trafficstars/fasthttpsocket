@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trafficstars/fasthttp"
 	"github.com/stretchr/testify/assert"
+	"github.com/trafficstars/fasthttp"
 )
 
 const (
 	testUnixAddress = "raw:native:unixpacket:/tmp/.fasthttpsocket_test"
 )
 
-type testErrorLogger struct{
+type testErrorLogger struct {
 	t *testing.T
 }
 
@@ -25,7 +25,8 @@ func (l *testErrorLogger) Print(args ...interface{}) {
 	//l.t.Errorf("%v", args)
 }
 
-type testHandleRequester struct {}
+type testHandleRequester struct{}
+
 func (h *testHandleRequester) HandleRequest(ctx *fasthttp.RequestCtx) error {
 	return nil
 }
@@ -34,7 +35,7 @@ func TestUnixGram(t *testing.T) {
 	srv, err := NewSocketServer(&testHandleRequester{}, Config{
 		Address:               testUnixAddress,
 		UnixSocketPermissions: 0700,
-		Logger: &testErrorLogger{t},
+		Logger:                &testErrorLogger{t},
 	})
 	assert.NoError(t, err)
 
@@ -43,14 +44,14 @@ func TestUnixGram(t *testing.T) {
 
 	client, err := NewSocketClient(Config{
 		Address: testUnixAddress,
-		Logger: &testErrorLogger{t},
+		Logger:  &testErrorLogger{t},
 	})
 	assert.NoError(t, err)
 
 	err = client.Start(1)
 	assert.NoError(t, err)
 
-	go func( ){
+	go func() {
 		reqCtx := &fasthttp.RequestCtx{}
 		reqCtx.Request.Header.Set(`Host`, `trafficstars.com`)
 		err = client.SendAndReceive(reqCtx)
